@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>GAS連携ページ</title>
+</head>
+<body>
+  <h1>GASからのデータ表示</h1>
+  <div id="output">読み込み中...</div>
+
+  <script>
+    // GASの公開URLをここに貼る
+    fetch("https://script.google.com/macros/s/AKfycbxDVYGfwaYj5ngGSnKNzF3yQQWAwMtldb9cpaTfL8RRLDeqYErQyIFDKevJxtkLHC0/exec")
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("output").textContent = data.message;
+      });
+  </script>
+</body>
+</html>
