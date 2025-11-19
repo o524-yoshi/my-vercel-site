@@ -2,19 +2,147 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>GAS連携ページ</title>
+  <title>CabaTech 売上・経費管理ツール（デモ版）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { margin:0; padding:1rem; background:#121212; color:#e0e0e0; font-family:sans-serif }
+    .section { margin:1rem 0; padding:1rem; background:#1e1e1e; border-radius:8px }
+    label, p, strong { display:block; margin:0.5rem 0 }
+    select, input[type=text], input[type=radio], input[type=checkbox] { accent-color:#bb86fc }
+    select, input[type=text], input[type=number] {
+      width:100%; padding:0.5rem; background:#2a2a2a; color:#e0e0e0;
+      border:none; border-radius:4px; margin-bottom:0.5rem;
+      box-sizing: border-box;
+    }
+    .row { display:grid; grid-template-columns: 2fr 1fr 1fr; gap:1rem; align-items:center; padding: 0.5rem 0; border-bottom: 1px solid #333;}
+    .row:first-of-type { border-top: 1px solid #333; }
+    button { width:100%; padding:0.75rem; margin-top:1rem; background:#bb86fc; color:#121212; border:none; border-radius:6px; font-size:1rem; }
+    .display-text-cell { padding: 0.5rem; color: #ccc; }
+  </style>
 </head>
 <body>
-  <h1>GASからのデータ表示</h1>
-  <div id="output">読み込み中...</div>
+  <h2>CabaTech 売上・経費管理ツール（デモ版）</h2>
+  <form id="fm"></form>
 
   <script>
-    // GASの公開URLをここに貼る
-    fetch("https://script.google.com/macros/s/AKfycbxDVYGfwaYj5ngGSnKNzF3yQQWAwMtldb9cpaTfL8RRLDeqYErQyIFDKevJxtkLHC0/exec")
-      .then(res => res.json())
-      .then(data => {
-        document.getElementById("output").textContent = data.message;
+    // GASのAPI URLを指定
+    const GAS_API_URL = "https://script.google.com/macros/s/AKfycb.../exec";
+
+    // ページロード時にGASからデータを取得
+    window.onload = () => {
+      fetch(GAS_API_URL)
+        .then(res => res.json())
+        .then(data => {
+          const formDef = data.formDef;
+          const orders = data.orders;
+          const expenseDefs = data.expenseDefs;
+          const depMap = data.depMap;
+
+          const fm = document.getElementById("fm");
+          let curr = "";
+
+          formDef.forEach(def => {
+            if (def.section !== curr) {
+              curr = def.section;
+              const sec = document.createElement("div");
+              sec.className = "section";
+              sec.id = "sec-" + def.section;
+              if (def.section !== "1") sec.style.display = "none";
+              fm.appendChild(sec);
+            }
+
+            const sec = document.getElementById("sec-" + def.section);
+
+            const p = document.createElement("p");
+            p.textContent = def.question;
+            sec.appendChild(p);
+
+            if (def.field === "type") {
+              def.options.forEach(opt => {
+                const label = document.createElement("label");
+                label.innerHTML = `<input type="radio" name="type" value="${opt}"> ${opt}`;
+                sec.appendChild(label);
+              });
+            } else if (def.field === "q2") {
+              const sel = document.createElement("select");
+              sel.name = "q2";
+              sel.innerHTML = `<option value="">—選択—</option>`;
+              def.options.forEach(opt => {
+                sel.innerHTML += `<option value="${opt}">${opt}</option>`;
+              });
+              sec.appendChild(sel);
+
+              const depSel = document.createElement("select");
+              depSel.name = "q2_dep";
+              depSel.style.display = "none";
+              depSel.innerHTML = `<option value="">—選択—</option>`;
+              sec.appendChild(depSel);
+
+              sel.addEventListener("change", e => {
+                depSel.innerHTML = `<option value="">—選択—</option>`;
+                depSel.style.display = "none";
+                const depOptions = depMap[e.target.value] || [];
+                if (depOptions.length) {
+                  depSel.style.display = "block";
+                  depOptions.forEach(opt => {
+                    depSel.innerHTML += `<option value="${opt}">${opt}</option>`;
+                  });
+                }
+              });
+            } else if (def.field === "q3") {
+              const header = document.createElement("div");
+              header.className = "row";
+              header.innerHTML = "<div>注文内容</div><div>価格</div><div>個数</div>";
+              sec.appendChild(header);
+
+              orders.forEach(o => {
+                const row = document.createElement("div");
+                row.className = "row";
+                row.innerHTML = `
+                  <div><label><input type="checkbox" name="q3" value="${o.key}"> ${o.key}</label></div>
+                  <div>${o.price}</div>
+                  <div><input type="number" name="q3_qty_${o.key}" value="${o.qty}" min="0"></div>
+                `;
+                sec.appendChild(row);
+              });
+            }
+          });
+
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.textContent = "送信";
+          btn.onclick = onSubmit;
+          fm.appendChild(btn);
+        });
+    };
+
+    function onSubmit() {
+      const fm = document.getElementById("fm");
+      const data = {};
+      fm.querySelectorAll("[name]").forEach(el => {
+        if (el.type === "radio" && el.checked) {
+          data[el.name] = el.value;
+        } else if (el.type === "checkbox") {
+          data[el.name] = data[el.name] || [];
+          if (el.checked) data[el.name].push(el.value);
+        } else {
+          data[el.name] = el.value;
+        }
       });
+
+      // 送信処理（GASのdoPostに送る）
+      fetch(GAS_API_URL, {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: { "Content-Type": "application/json" }
+      })
+      .then(res => res.text())
+      .then(r => {
+        alert("送信しました！");
+        fm.reset();
+      })
+      .catch(e => alert("エラー: " + e.message));
+    }
   </script>
 </body>
 </html>
