@@ -1,148 +1,66 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>CabaTech 売上・経費管理ツール（デモ版）</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { margin:0; padding:1rem; background:#121212; color:#e0e0e0; font-family:sans-serif }
-    .section { margin:1rem 0; padding:1rem; background:#1e1e1e; border-radius:8px }
-    label, p, strong { display:block; margin:0.5rem 0 }
-    select, input[type=text], input[type=radio], input[type=checkbox] { accent-color:#bb86fc }
-    select, input[type=text], input[type=number] {
-      width:100%; padding:0.5rem; background:#2a2a2a; color:#e0e0e0;
-      border:none; border-radius:4px; margin-bottom:0.5rem;
-      box-sizing: border-box;
-    }
-    .row { display:grid; grid-template-columns: 2fr 1fr 1fr; gap:1rem; align-items:center; padding: 0.5rem 0; border-bottom: 1px solid #333;}
-    .row:first-of-type { border-top: 1px solid #333; }
-    button { width:100%; padding:0.75rem; margin-top:1rem; background:#bb86fc; color:#121212; border:none; border-radius:6px; font-size:1rem; }
-    .display-text-cell { padding: 0.5rem; color: #ccc; }
-  </style>
+    <meta charset="UTF-8">
+    <title>GAS連携サンプル</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        input { margin-bottom: 10px; padding: 8px; width: 250px; display: block; }
+        button { padding: 10px 15px; cursor: pointer; }
+        #result { margin-top: 20px; font-weight: bold; }
+    </style>
 </head>
 <body>
-  <h2>CabaTech 売上・経費管理ツール（デモ版）</h2>
-  <form id="fm"></form>
 
-  <script>
-    // GASのAPI URLを指定
-    const GAS_API_URL = "https://script.google.com/macros/s/AKfycb.../exec";
+    <h2>スプレッドシートにデータを送信</h2>
 
-    // ページロード時にGASからデータを取得
-    window.onload = () => {
-      fetch(GAS_API_URL)
-        .then(res => res.json())
-        .then(data => {
-          const formDef = data.formDef;
-          const orders = data.orders;
-          const expenseDefs = data.expenseDefs;
-          const depMap = data.depMap;
+    <input type="text" id="input_id" placeholder="ユーザーID (認証用)">
+    <input type="text" id="input_pass" placeholder="パスワード (認証用)">
+    <input type="text" id="input_value" placeholder="スプレッドシートに記録したい値">
+    
+    <button onclick="sendData()">データを送信</button>
 
-          const fm = document.getElementById("fm");
-          let curr = "";
+    <div id="result"></div>
 
-          formDef.forEach(def => {
-            if (def.section !== curr) {
-              curr = def.section;
-              const sec = document.createElement("div");
-              sec.className = "section";
-              sec.id = "sec-" + def.section;
-              if (def.section !== "1") sec.style.display = "none";
-              fm.appendChild(sec);
-            }
+    <script>
+        // ★★★ ここにデプロイしたGASのURLを設定してください ★★★
+        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwm1cN_jcDzR3YJLVnf6kCYCMGrHuKJ6-NYjV6rUR2GX_DBcaLFcICjebVdRN9f7Hu1_A/exec"; 
 
-            const sec = document.getElementById("sec-" + def.section);
+        async function sendData() {
+            const userId = document.getElementById('input_id').value;
+            const password = document.getElementById('input_pass').value;
+            const valueToRecord = document.getElementById('input_value').value;
+            const resultDiv = document.getElementById('result');
+            
+            resultDiv.textContent = '送信中...';
 
-            const p = document.createElement("p");
-            p.textContent = def.question;
-            sec.appendChild(p);
+            // FormDataオブジェクトを使ってデータを準備
+            const formData = new FormData();
+            formData.append('id', userId);
+            formData.append('pass', password);
+            formData.append('data', valueToRecord); // 任意の値
+            formData.append('type', 'write'); // GAS側で処理を分けるための識別子
 
-            if (def.field === "type") {
-              def.options.forEach(opt => {
-                const label = document.createElement("label");
-                label.innerHTML = `<input type="radio" name="type" value="${opt}"> ${opt}`;
-                sec.appendChild(label);
-              });
-            } else if (def.field === "q2") {
-              const sel = document.createElement("select");
-              sel.name = "q2";
-              sel.innerHTML = `<option value="">—選択—</option>`;
-              def.options.forEach(opt => {
-                sel.innerHTML += `<option value="${opt}">${opt}</option>`;
-              });
-              sec.appendChild(sel);
+            try {
+                const response = await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    body: formData // POSTでデータを送信
+                });
 
-              const depSel = document.createElement("select");
-              depSel.name = "q2_dep";
-              depSel.style.display = "none";
-              depSel.innerHTML = `<option value="">—選択—</option>`;
-              sec.appendChild(depSel);
+                // GASからのJSONレスポンスをパース
+                const data = await response.json(); 
 
-              sel.addEventListener("change", e => {
-                depSel.innerHTML = `<option value="">—選択—</option>`;
-                depSel.style.display = "none";
-                const depOptions = depMap[e.target.value] || [];
-                if (depOptions.length) {
-                  depSel.style.display = "block";
-                  depOptions.forEach(opt => {
-                    depSel.innerHTML += `<option value="${opt}">${opt}</option>`;
-                  });
+                if (data.status === 'success') {
+                    resultDiv.textContent = '✅ 成功: ' + data.message;
+                } else {
+                    resultDiv.textContent = '❌ 失敗: ' + data.message;
                 }
-              });
-            } else if (def.field === "q3") {
-              const header = document.createElement("div");
-              header.className = "row";
-              header.innerHTML = "<div>注文内容</div><div>価格</div><div>個数</div>";
-              sec.appendChild(header);
 
-              orders.forEach(o => {
-                const row = document.createElement("div");
-                row.className = "row";
-                row.innerHTML = `
-                  <div><label><input type="checkbox" name="q3" value="${o.key}"> ${o.key}</label></div>
-                  <div>${o.price}</div>
-                  <div><input type="number" name="q3_qty_${o.key}" value="${o.qty}" min="0"></div>
-                `;
-                sec.appendChild(row);
-              });
+            } catch (error) {
+                resultDiv.textContent = '致命的なエラーが発生しました。';
+                console.error('Fetch Error:', error);
             }
-          });
-
-          const btn = document.createElement("button");
-          btn.type = "button";
-          btn.textContent = "送信";
-          btn.onclick = onSubmit;
-          fm.appendChild(btn);
-        });
-    };
-
-    function onSubmit() {
-      const fm = document.getElementById("fm");
-      const data = {};
-      fm.querySelectorAll("[name]").forEach(el => {
-        if (el.type === "radio" && el.checked) {
-          data[el.name] = el.value;
-        } else if (el.type === "checkbox") {
-          data[el.name] = data[el.name] || [];
-          if (el.checked) data[el.name].push(el.value);
-        } else {
-          data[el.name] = el.value;
         }
-      });
-
-      // 送信処理（GASのdoPostに送る）
-      fetch(GAS_API_URL, {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: { "Content-Type": "application/json" }
-      })
-      .then(res => res.text())
-      .then(r => {
-        alert("送信しました！");
-        fm.reset();
-      })
-      .catch(e => alert("エラー: " + e.message));
-    }
-  </script>
+    </script>
 </body>
 </html>
