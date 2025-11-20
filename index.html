@@ -51,11 +51,17 @@
 
         // 最終更新日時を画面に表示
         document.addEventListener('DOMContentLoaded', () => {
-            // このコードが生成された日時を「最終更新日時」として設定
             const lastUpdatedElement = document.getElementById('last-updated');
-            // 2025/11/20 15:57:00 JST は、前の応答で設定した日時です。
-            const lastUpdatedDate = new Date('2025/11/20 15:57:00 JST'); 
             
+            // 【修正点】タイムゾーン指定を外し、ブラウザが確実に解釈できる形式（スラッシュ区切り）に修正
+            const lastUpdatedDate = new Date('2025/11/20 15:57:00'); 
+            
+            // Dateオブジェクトが有効かチェック
+            if (isNaN(lastUpdatedDate)) {
+                lastUpdatedElement.textContent = '最終更新: 日付エラー';
+                return;
+            }
+
             const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZoneName: 'short' };
             lastUpdatedElement.textContent = '最終更新: ' + lastUpdatedDate.toLocaleString('ja-JP', options);
         });
