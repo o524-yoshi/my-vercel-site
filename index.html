@@ -2,29 +2,64 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>GAS連携サンプル</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GAS連携サンプル - データ送信</title>
+    <!-- Tailwind CSS CDNをロード -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        input { margin-bottom: 10px; padding: 8px; width: 250px; display: block; }
-        button { padding: 10px 15px; cursor: pointer; }
-        #result { margin-top: 20px; font-weight: bold; }
+        /* カスタムスタイル: Interフォントを設定 */
+        body { font-family: 'Inter', sans-serif; }
     </style>
 </head>
-<body>
+<body class="bg-gray-900 text-white min-h-screen p-4 sm:p-8 flex flex-col items-center">
 
-    <h2>スプレッドシートにデータを送信</h2>
+    <div class="w-full max-w-md bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl space-y-6">
+        <h2 class="text-2xl font-bold text-center text-teal-400">スプレッドシート連携API</h2>
 
-    <input type="text" id="input_id" placeholder="ユーザーID (認証用)">
-    <input type="text" id="input_pass" placeholder="パスワード (認証用)">
-    <input type="text" id="input_value" placeholder="スプレッドシートに記録したい値">
-    
-    <button onclick="sendData()">データを送信</button>
+        <!-- 最終更新日時を表示するセクション -->
+        <div id="last-updated" class="text-xs text-gray-500 text-right"></div>
+        
+        <input type="text" id="input_id" placeholder="ユーザーID (認証用)"
+               class="w-full p-3 border border-gray-700 bg-gray-700 rounded-lg text-white focus:ring-teal-500 focus:border-teal-500 transition duration-150">
+        
+        <input type="password" id="input_pass" placeholder="パスワード (認証用)"
+               class="w-full p-3 border border-gray-700 bg-gray-700 rounded-lg text-white focus:ring-teal-500 focus:border-teal-500 transition duration-150">
+        
+        <input type="text" id="input_value" placeholder="スプレッドシートに記録したい値"
+               class="w-full p-3 border border-gray-700 bg-gray-700 rounded-lg text-white focus:ring-teal-500 focus:border-teal-500 transition duration-150">
+        
+        <button onclick="sendData()"
+                class="w-full py-3 bg-teal-600 hover:bg-teal-500 text-white font-semibold rounded-lg shadow-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50">
+            データを送信
+        </button>
 
-    <div id="result"></div>
+        <div id="result" class="mt-4 p-4 text-sm font-medium rounded-lg text-center min-h-10 transition duration-300">
+            <!-- 結果が表示されます -->
+        </div>
+    </div>
 
     <script>
         // ★★★ ここにデプロイしたGASのURLを設定してください ★★★
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwm1cN_jcDzR3YJLVnf6kCYCMGrHuKJ6-NYjV6rUR2GX_DBcaLFcICjebVdRN9f7Hu1_A/exec"; 
+        const GAS_API_URL = "【あなたのGASデプロイURL】"; 
+        
+        // エラーメッセージの定義
+        const errorMessages = {
+            CORS: "❌ 通信エラー: サーバー（GAS）からの応答がブロックされました。デプロイ設定を再確認してください。",
+            NETWORK: "❌ ネットワークエラー: GASのURLが間違っているか、接続に問題があります。",
+            FATAL: "❌ 致命的なエラーが発生しました。"
+        };
+
+        // 最終更新日時を画面に表示
+        document.addEventListener('DOMContentLoaded', () => {
+            // このコードが生成された日時を「最終更新日時」として設定
+            const lastUpdatedElement = document.getElementById('last-updated');
+            // 2025/11/20 15:57:00 JST は、前の応答で設定した日時です。
+            const lastUpdatedDate = new Date('2025/11/20 15:57:00 JST'); 
+            
+            const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZoneName: 'short' };
+            lastUpdatedElement.textContent = '最終更新: ' + lastUpdatedDate.toLocaleString('ja-JP', options);
+        });
+
 
         async function sendData() {
             const userId = document.getElementById('input_id').value;
@@ -33,6 +68,7 @@
             const resultDiv = document.getElementById('result');
             
             resultDiv.textContent = '送信中...';
+            resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-gray-700 text-white';
 
             // FormDataオブジェクトを使ってデータを準備
             const formData = new FormData();
@@ -44,21 +80,35 @@
             try {
                 const response = await fetch(GAS_API_URL, {
                     method: 'POST',
-                    body: formData // POSTでデータを送信
+                    body: formData // POSTでデータを送信 (Content-Type: multipart/form-data)
                 });
+
+                // HTTPステータスが200番台でなければエラーとして処理
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
                 // GASからのJSONレスポンスをパース
                 const data = await response.json(); 
 
                 if (data.status === 'success') {
                     resultDiv.textContent = '✅ 成功: ' + data.message;
+                    resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-green-900 text-green-300';
                 } else {
                     resultDiv.textContent = '❌ 失敗: ' + data.message;
+                    resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-red-900 text-red-300';
                 }
 
             } catch (error) {
-                resultDiv.textContent = '致命的なエラーが発生しました。';
                 console.error('Fetch Error:', error);
+                
+                // エラータイプに基づいてメッセージを更新
+                if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+                    resultDiv.textContent = errorMessages.CORS; // 既知のCORSエラーに統一
+                } else {
+                    resultDiv.textContent = errorMessages.FATAL;
+                }
+                resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-red-900 text-red-300';
             }
         }
     </script>
