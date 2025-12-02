@@ -3,120 +3,605 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GAS連携サンプル - データ送信</title>
+    <title>CabaTech 売上・経費管理ツール（デモ版）</title>
     <!-- Tailwind CSS CDNをロード -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* カスタムスタイル: Interフォントを設定 */
+        /* カスタムスタイル */
         body { font-family: 'Inter', sans-serif; }
+        .form-section {
+            @apply p-4 bg-gray-700 rounded-lg shadow-inner;
+        }
+        .section-header {
+            @apply text-lg font-semibold text-teal-400 border-b border-gray-600 pb-2 mb-3;
+        }
+        
+        /* 💡 入力フィールドのスタイル: 文字色をティール系の明るい色に変更 (text-white/gray-200を回避) */
+        .input-style {
+            @apply w-full p-2 border border-gray-600 bg-gray-800 rounded-md 
+                   text-teal-200 placeholder-gray-500 
+                   focus:ring-teal-500 focus:border-teal-500 
+                   transition duration-150 disabled:opacity-70; 
+        }
+        .radio-checked {
+            @apply ring-2 ring-teal-500 bg-teal-600;
+        }
+        
     </style>
 </head>
 <body class="bg-gray-900 text-white min-h-screen p-4 sm:p-8 flex flex-col items-center">
 
-    <div class="w-full max-w-md bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl space-y-6">
-        <h2 class="text-2xl font-bold text-center text-teal-400">スプレッドシート連携API</h2>
+    <div class="w-full max-w-lg bg-gray-800 p-6 sm:p-8 rounded-xl shadow-2xl space-y-6">
+        <h2 class="text-3xl font-extrabold text-center text-teal-400">CabaTech 売上・経費管理ツール</h2>
 
-        <!-- 最終更新日時を表示するセクション -->
-        <div id="last-updated" class="text-xs text-gray-500 text-right"></div>
+        <!-- 最終更新日時 - ユーザー指定の静的日付で表示 -->
+        <div id="last-updated" class="text-xs text-gray-500 text-right">最終更新: 2025/12/02 15:53:40</div>
         
-        <input type="text" id="input_id" placeholder="ユーザーID (認証用)"
-               class="w-full p-3 border border-gray-700 bg-gray-700 rounded-lg text-white focus:ring-teal-500 focus:border-teal-500 transition duration-150">
-        
-        <input type="password" id="input_pass" placeholder="パスワード (認証用)"
-               class="w-full p-3 border border-gray-700 bg-gray-700 rounded-lg text-white focus:ring-teal-500 focus:border-teal-500 transition duration-150">
-        
-        <input type="text" id="input_value" placeholder="スプレッドシートに記録したい値"
-               class="w-full p-3 border border-gray-700 bg-gray-700 rounded-lg text-white focus:ring-teal-500 focus:border-teal-500 transition duration-150">
-        
-        <button onclick="sendData()"
-                class="w-full py-3 bg-teal-600 hover:bg-teal-500 text-white font-semibold rounded-lg shadow-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50">
-            データを送信
-        </button>
+        <!-- フォームコンテナ -->
+        <form id="main-form" class="space-y-6">
+            
+            <!-- 1. カテゴリ選択 (type) -->
+            <div id="type-section" class="form-section space-y-3">
+                <!-- text-gray-300 -> text-gray-400 に修正 -->
+                <p class="text-sm font-medium text-gray-400">記録タイプを選択 (type):</p>
+                <div class="flex space-x-4">
+                    <!-- text-gray-300 -> text-gray-400 に修正 -->
+                    <label class="flex items-center text-gray-400 cursor-pointer p-2 rounded-lg hover:bg-gray-600 transition">
+                        <input type="radio" name="type" value="売上・注文" 
+                               class="text-teal-500 focus:ring-teal-500 h-4 w-4 border-gray-300" 
+                               onchange="handleTypeChange(this.value)" checked>
+                        <span class="ml-2 text-sm font-medium">売上・注文</span>
+                    </label>
+                    <!-- text-gray-300 -> text-gray-400 に修正 -->
+                    <label class="flex items-center text-gray-400 cursor-pointer p-2 rounded-lg hover:bg-gray-600 transition">
+                        <input type="radio" name="type" value="経費" 
+                               class="text-teal-500 focus:ring-teal-500 h-4 w-4 border-gray-300" 
+                               onchange="handleTypeChange(this.value)">
+                        <span class="ml-2 text-sm font-medium">経費</span>
+                    </label>
+                </div>
+            </div>
 
-        <div id="result" class="mt-4 p-4 text-sm font-medium rounded-lg text-center min-h-10 transition duration-300">
+            <!-- 2. 担当者/キャスト名入力 (q2) -->
+            <div id="q2-section" class="form-section space-y-1">
+                <!-- text-gray-300 -> text-gray-400 に修正 -->
+                <label for="q2" class="block text-sm font-medium text-gray-400">担当者名 (q2): <span class="text-red-400">*</span></label>
+                <!-- input-style を適用 (内部は text-teal-200) -->
+                <input type="text" id="q2" name="q2" class="input-style" placeholder="例: 太郎">
+            </div>
+
+            <!-- 3. 売上・注文フォーム (q3) - 初期表示 -->
+            <div id="q3-section" class="form-section space-y-3">
+                <h3 class="section-header">売上・注文項目 (q3)</h3>
+                <div id="sales-items-container" class="space-y-3">
+                    <p class="text-sm text-gray-400">注文データをロード中...</p>
+                </div>
+            </div>
+
+            <!-- 4. 経費フォーム (q5) - 初期非表示 -->
+            <div id="q5-section" class="form-section space-y-3 hidden">
+                <h3 class="section-header">経費項目 (q5)</h3>
+                <div id="expense-items-container" class="space-y-4">
+                    <p class="text-sm text-gray-400">経費定義をロード中...</p>
+                </div>
+                
+                <!-- デバッグ情報表示エリア -->
+                <div id="expense-debug-info" class="p-2 bg-gray-900 border border-gray-700 rounded-md text-xs text-gray-400 mt-4">
+                    <!-- GASからロードされた経費データが表示されます -->
+                </div>
+            </div>
+            
+            <!-- 5. 送信ボタン -->
+            <button type="submit"
+                    class="w-full py-3 bg-teal-600 hover:bg-teal-500 text-white font-semibold rounded-lg shadow-lg transition duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-50 transform hover:scale-[1.01]">
+                フォームを送信・記録
+            </button>
+        </form>
+
+        <!-- 6. 分析ページリダイレクトセクション (q7) -->
+        <div class="form-section space-y-3 border-t border-gray-700 pt-4">
+            <!-- text-gray-300 -> text-gray-400 に修正 -->
+            <h3 class="text-base font-bold text-gray-400">分析ページへ移動 (q7)</h3>
+            <p class="text-xs text-gray-400">アクセスパスワードを入力してください。</p>
+            <div class="flex space-x-3">
+                <!-- input-style を適用 (内部は text-teal-200) -->
+                <input type="password" id="q7" name="q7" class="input-style flex-grow" placeholder="パスワード">
+                <button onclick="attemptRedirect()"
+                        class="py-2 px-4 bg-orange-600 hover:bg-orange-500 text-white text-sm font-medium rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    分析ページへ
+                </button>
+            </div>
+            <div id="redirect-result" class="text-xs text-red-400 min-h-4"></div>
+        </div>
+
+        <!-- 7. フォーム送信結果 -->
+        <!-- text-white -> text-teal-200 に修正 -->
+        <div id="result" class="mt-4 p-4 text-sm font-medium rounded-lg text-center min-h-10 transition duration-300 text-teal-200">
             <!-- 結果が表示されます -->
         </div>
     </div>
 
     <script>
-        // ★★★ ここにデプロイしたGASのURLを設定してください ★★★
-        const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwm1cN_jcDzR3YJLVnf6kCYCMGrHuKJ6-NYjV6rUR2GX_DBcaLFcICjebVdRN9f7Hu1_A/exec"; 
+        // 💡 ユーザーから提供された正しいURLに修正
+        const CORRECT_GAS_API_URL = "https://script.google.com/macros/s/AKfycbwm1cN_jcDzR3YJLVnf6kCYCMGrHuKJ6-NYjV6rUR2GX_DBcaLFcICjebVdRN9f7Hu1_A/exec"; 
         
-        // エラーメッセージの定義
-        const errorMessages = {
-            CORS: "❌ 通信エラー: サーバー（GAS）からの応答がブロックされました。デプロイ設定を再確認してください。",
-            NETWORK: "❌ ネットワークエラー: GASのURLが間違っているか、接続に問題があります。",
-            FATAL: "❌ 致命的なエラーが発生しました。"
+        /**
+         * 現在使用すべきGASのURLを取得する
+         */
+        function getGasApiUrl() {
+            return CORRECT_GAS_API_URL;
+        }
+
+        // グローバルデータストア
+        let AppData = {
+            formDef: [],
+            orders: [], 
+            expenseDefs: [], 
+            depMap: {},
+            setVal: '' 
         };
-
-        // 最終更新日時を画面に表示
+        
+        // ページロード時の初期処理
         document.addEventListener('DOMContentLoaded', () => {
-            const lastUpdatedElement = document.getElementById('last-updated');
+            document.getElementById('main-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                submitFormData();
+            });
             
-            // 【修正点】タイムゾーン指定を外し、ブラウザが確実に解釈できる形式（スラッシュ区切り）に修正
-            const lastUpdatedDate = new Date('2025/11/20 15:57:00'); 
-            
-            // Dateオブジェクトが有効かチェック
-            if (isNaN(lastUpdatedDate)) {
-                lastUpdatedElement.textContent = '最終更新: 日付エラー';
-                return;
-            }
-
-            const options = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZoneName: 'short' };
-            lastUpdatedElement.textContent = '最終更新: ' + lastUpdatedDate.toLocaleString('ja-JP', options);
+            loadAllData();
         });
 
 
-        async function sendData() {
-            const userId = document.getElementById('input_id').value;
-            const password = document.getElementById('input_pass').value;
-            const valueToRecord = document.getElementById('input_value').value;
+        /**
+         * GASから全てのフォーム定義データを統合的に取得する
+         */
+        async function loadAllData() {
+            const GAS_API_URL = getGasApiUrl(); // URLを取得
+            const salesContainer = document.getElementById('sales-items-container');
+            const expenseContainer = document.getElementById('expense-items-container');
             const resultDiv = document.getElementById('result');
+
+            salesContainer.innerHTML = '<p class="text-sm text-gray-400">注文データをロード中...</p>';
+            expenseContainer.innerHTML = '<p class="text-sm text-gray-400">経費定義をロード中...</p>';
+            resultDiv.className = 'hidden';
+
+            let dataLoadedFromGAS = false;
+            const MAX_RETRIES = 3;
+            let lastError = null;
+
+            for (let i = 0; i < MAX_RETRIES; i++) {
+                let responseText = '';
+                try {
+                    // キャッシュを無効化し、新しいリクエストを強制する
+                    const response = await fetch(GAS_API_URL + "?action=loadData", {
+                        method: 'GET', 
+                        cache: 'no-store' 
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    responseText = await response.text();
+                    let data;
+
+                    if (responseText.trim().startsWith('<!DOCTYPE html>') || responseText.trim().startsWith('<html')) {
+                        console.error('GAS returned HTML (likely an error page):', responseText);
+                        throw new Error('GAS_RETURNED_HTML');
+                    }
+
+                    try {
+                        data = JSON.parse(responseText);
+                    } catch (e) {
+                        const preview = responseText.substring(0, 200) + (responseText.length > 200 ? '...' : ''); 
+                        console.error('JSON Parse failed on received text (GAS returned non-JSON text). Full response:', responseText);
+                        throw new Error(`JSONパースエラー: 受信データがJSON形式ではありません。レスポンスの先頭: "${preview}"`);
+                    }
+                    
+                    if (data.status === 'error') {
+                        throw new Error(`GASエラー: ${data.message || 'データ取得に失敗しました。'}`);
+                    }
+                    
+                    // 成功した場合、AppDataをGASデータで上書き
+                    AppData.orders = data.orders || [];
+                    AppData.expenseDefs = data.expenseDefs || [];
+                    AppData.setVal = data.setVal || '';
+                    dataLoadedFromGAS = true;
+                    
+                    console.log("✅ GASからデータを正常にロードしました。");
+                    break; 
+                    
+                } catch (error) {
+                    lastError = error;
+                    if (i < MAX_RETRIES - 1) {
+                        const delay = Math.pow(2, i) * 100; // リトライを早くする
+                        console.log(`[API Retry] Attempt ${i + 1} failed. Retrying in ${delay / 1000}s...`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    }
+                }
+            }
+
+
+            // データロードが失敗した場合、コンソールにエラーを表示し、ダミーデータで続行
+            if (!dataLoadedFromGAS) {
+                console.warn('⚠️ GASからのデータロードに失敗しました。ダミーデータを使用してフォームを初期化します。');
+                
+                // lastErrorの詳細をコンソールに出力し、画面表示メッセージを調整
+                console.error('[CONSOLE_ERROR] 最終的なデータロードエラー:', lastError);
+
+                let errorMessage = '';
+                if (lastError && lastError.message) {
+                    // エラーメッセージからネットワーク関連のエラーを検出
+                    const networkError = lastError.message.includes('Failed to fetch') || lastError.message.includes('Type error');
+                    errorMessage = networkError 
+                        ? `ネットワーク接続エラー（URL/CORSの問題）。`
+                        : lastError.message;
+                } else {
+                    errorMessage = '接続またはネットワーク関連のエラーが発生しました。コンソールで詳細を確認してください。';
+                }
+
+                // エラーメッセージをlastErrorから取得し、画面に表示
+                let displayMessage = `⚠️ データロード失敗 (${MAX_RETRIES}回再試行後): ${errorMessage}
+                                      使用URL: ${GAS_API_URL}
+                                      GASのURLが正しいか、デプロイ版の**公開設定（「全員」）**を確認してください。ダミーデータで実行中。`;
+                
+                resultDiv.textContent = displayMessage;
+                resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-red-900 text-red-300';
+
+                // --- ここでダミーデータを強制的に設定する ---
+                AppData.orders = [
+                    { key: 'ビール (大)', price: 800, qty: 1 },
+                    { key: 'ボトル (赤)', price: 5000, qty: 1 },
+                    { key: 'ショット', price: 1000, qty: 3 },
+                    { key: 'フード', price: 1500, qty: 1 }
+                ];
+                AppData.expenseDefs = [
+                    {
+                        key: '雑費',
+                        col2: { header: '詳細', type: 'text', initialValue: '備品購入' },
+                        col3: { header: '金額', type: 'number', initialValue: 500 }
+                    },
+                    {
+                        key: '交通費',
+                        col2: { header: '行先', type: 'text', initialValue: '自宅' },
+                        col3: { header: '金額', type: 'number', initialValue: 1200 }
+                    },
+                    {
+                        key: 'その他',
+                        col2: { header: '詳細', type: 'text', initialValue: '' },
+                        col3: { header: '金額', type: 'number', initialValue: 0 }
+                    }
+                ];
+                AppData.setVal = 'cabatech_pass';
+                // ------------------------------------------
+
+            } else {
+                 resultDiv.className = 'hidden'; // 成功時は非表示
+            }
+
+            // フォームのレンダリング
+            renderSalesItems();
+            renderExpenseItems();
+            handleTypeChange('売上・注文'); // 初期カテゴリの表示
+        }
+
+        /**
+         * 売上・注文アイテム (q3) を動的にレンダリングする
+         */
+        function renderSalesItems() {
+            const container = document.getElementById('sales-items-container');
+            if (AppData.orders.length === 0) {
+                container.innerHTML = '<p class="text-sm text-yellow-400">注文項目が定義されていません。</p>';
+                return;
+            }
+
+            const itemsHtml = AppData.orders.map(order => `
+                <div class="flex items-center space-x-3 p-2 bg-gray-600 rounded-md">
+                    <!-- チェックボックス (q3) -->
+                    <!-- text-gray-200 -> text-teal-200 に修正 -->
+                    <label class="flex items-center flex-grow text-sm text-teal-200 cursor-pointer">
+                        <input type="checkbox" name="q3" value="${order.key}" 
+                               class="text-teal-500 focus:ring-teal-500 h-4 w-4 border-gray-400 rounded"
+                               onchange="toggleQtyInput('${order.key}', this.checked)">
+                        <span class="ml-2 font-medium">${order.key} (${new Intl.NumberFormat('ja-JP').format(order.price)}円)</span>
+                    </label>
+                    
+                    <!-- 数量入力 (q3_qty_...) -->
+                    <!-- 内部フォントは text-teal-200 -->
+                    <input type="number" 
+                           id="q3_qty_${order.key}" 
+                           name="q3_qty_${order.key}" 
+                           value="${order.qty}" 
+                           min="0" 
+                           placeholder="数量" 
+                           class="w-20 p-1 text-sm text-center border border-gray-500 bg-gray-700 rounded-md text-teal-200 disabled:opacity-70">
+                </div>
+            `).join('');
+
+            container.innerHTML = `
+                <p class="text-xs text-gray-400 mb-2">チェックした項目を売上として記録します。</p>
+                <input type="hidden" name="q3" value=""> <!-- 選択がない場合に備えたダミー -->
+                ${itemsHtml}
+            `;
             
+            // ロード後、全ての数量入力を非アクティブ状態に戻す
+            AppData.orders.forEach(order => toggleQtyInput(order.key, false));
+        }
+        
+        /**
+         * q3のチェックボックスに応じて数量入力の有効/無効を切り替える
+         */
+        function toggleQtyInput(key, isChecked) {
+            const qtyInput = document.getElementById(`q3_qty_${key}`);
+            if (qtyInput) {
+                qtyInput.disabled = !isChecked;
+                // チェックされたら数量を初期値に戻すか、1にする
+                if (isChecked) {
+                   qtyInput.value = AppData.orders.find(o => o.key === key)?.qty || 1;
+                } else {
+                   qtyInput.value = 0; // チェック解除時は0にリセット
+                }
+            }
+        }
+
+
+        /**
+         * 経費アイテム (q5) を動的にレンダリングする
+         */
+        function renderExpenseItems() {
+            const container = document.getElementById('expense-items-container');
+            const debugInfo = document.getElementById('expense-debug-info'); 
+
+            if (AppData.expenseDefs.length === 0) {
+                container.innerHTML = '<p class="text-sm text-yellow-400">経費項目が定義されていません。</p>';
+                debugInfo.innerHTML = '<p>デバッグ情報: 経費定義データは空です。GASのシート名やSPREADSHEET_IDを確認してください。</p>';
+                return;
+            }
+
+            // デバッグ情報に出力
+            debugInfo.innerHTML = `
+                <p class="font-bold text-teal-400 mb-1">--- 経費データ定義 (GASからの受信データ) ---</p>
+                ${AppData.expenseDefs.map(def => 
+                    `<p><strong>${def.key}</strong>: 
+                     [col2: H:${def.col2?.header || 'N/A'}/T:${def.col2?.type || 'N/A'}/V:${def.col2?.initialValue || 'N/A'}] 
+                     [col3: H:${def.col3?.header || 'N/A'}/T:${def.col3?.type || 'N/A'}/V:${def.col3?.initialValue || 'N/A'}]</p>`
+                ).join('')}
+                <p class="mt-1">※ T: type (入力タイプ), H: header, V: initialValue</p>
+            `;
+
+
+            const itemsHtml = AppData.expenseDefs.map(def => {
+                const type2 = typeof def.col2?.type === 'string' ? def.col2.type.toLowerCase() : '';
+                const type3 = typeof def.col3?.type === 'string' ? def.col3.type.toLowerCase() : '';
+
+                const col2InputType = (type2 === 'number' || type2 === 'n') ? 'number' : 'text';
+                const col3InputType = (type3 === 'number' || type3 === 'n') ? 'number' : 'text';
+
+                return `
+                    <div class="space-y-2 p-3 border border-gray-600 rounded-lg">
+                        <!-- text-gray-200 -> text-teal-200 に修正 -->
+                        <label class="flex items-center text-sm font-medium text-teal-200 cursor-pointer">
+                            <input type="checkbox" name="q5_items" value="${def.key}" 
+                                   class="text-teal-500 focus:ring-teal-500 h-4 w-4 border-gray-400 rounded"
+                                   onchange="toggleExpenseInputs('${def.key}', this.checked)">
+                            <span class="ml-2">${def.key}</span>
+                        </label>
+                        
+                        <div id="expense_details_${def.key}" class="flex space-x-3 mt-1 transition duration-200">
+                            <!-- col2 (価格/詳細) -->
+                            <div class="flex-1">
+                                <label for="expense_${def.key}_col2" class="block text-xs text-gray-400 mb-1">${def.col2.header}</label>
+                                <!-- input-style クラスを使用 (内部は text-teal-200) -->
+                                <input type="${col2InputType}" 
+                                       id="expense_${def.key}_col2" 
+                                       name="expense_${def.key}_col2" 
+                                       placeholder="${def.col2.header}"
+                                       value="${def.col2.initialValue}" 
+                                       class="input-style p-1 text-sm">
+                            </div>
+
+                            <!-- col3 (個数/金額) -->
+                            <div class="flex-1">
+                                <label for="expense_${def.key}_col3" class="block text-xs text-gray-400 mb-1">${def.col3.header}</label>
+                                <!-- input-style クラスを使用 (内部は text-teal-200) -->
+                                <input type="${col3InputType}" 
+                                       id="expense_${def.key}_col3" 
+                                       name="expense_${def.key}_col3" 
+                                       placeholder="${def.col3.header}"
+                                       value="${def.col3.initialValue}" 
+                                       class="input-style p-1 text-sm">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = `
+                <p class="text-xs text-gray-400 mb-2">チェックした経費項目を記録します。</p>
+                <input type="hidden" name="q5_items" value=""> <!-- 選択がない場合に備えたダミー -->
+                ${itemsHtml}
+            `;
+            
+            // 初期の状態を設定 
+            AppData.expenseDefs.forEach(def => toggleExpenseInputs(def.key, false));
+        }
+
+        /**
+         * q5のチェックボックスに応じて経費詳細入力の有効/無効を切り替える
+         */
+        function toggleExpenseInputs(key, isChecked) {
+            const detailsDiv = document.getElementById(`expense_details_${key}`);
+            if (!detailsDiv) return;
+
+            // detailsDiv全体を非操作状態にする（クリックイベントを遮断）
+            if (isChecked) {
+                detailsDiv.classList.remove('pointer-events-none');
+            } else {
+                detailsDiv.classList.add('pointer-events-none');
+            }
+            
+            // 子要素の入力欄を取得
+            const col2 = document.getElementById(`expense_${key}_col2`);
+            const col3 = document.getElementById(`expense_${key}_col3`);
+
+            if (col2) {
+                col2.disabled = !isChecked; // disabled属性を切り替える
+                // チェックOFF時は値をリセット
+                if (!isChecked) col2.value = AppData.expenseDefs.find(d => d.key === key)?.col2.initialValue || '';
+            }
+            if (col3) {
+                col3.disabled = !isChecked; // disabled属性を切り替える
+                // チェックOFF時は値をリセット
+                if (!isChecked) col3.value = AppData.expenseDefs.find(d => d.key === key)?.col3.initialValue || '';
+            }
+        }
+        
+        /**
+         * タイプ (売上・経費) の選択に応じてフォームを切り替える
+         */
+        function handleTypeChange(type) {
+            const q3Section = document.getElementById('q3-section');
+            const q5Section = document.getElementById('q5-section');
+
+            if (type === '売上・注文') {
+                q3Section.classList.remove('hidden');
+                q5Section.classList.add('hidden');
+            } else if (type === '経費') {
+                q3Section.classList.add('hidden');
+                q5Section.classList.remove('hidden');
+            }
+        }
+
+
+        /**
+         * メインフォームのデータ送信処理 (GASのsubmitFormを叩く)
+         */
+        async function submitFormData() {
+            const GAS_API_URL = getGasApiUrl(); // URLを取得
+            const resultDiv = document.getElementById('result');
+            // text-white -> text-teal-200 に修正
+            resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-gray-700 text-teal-200';
             resultDiv.textContent = '送信中...';
-            resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-gray-700 text-white';
 
-            // FormDataオブジェクトを使ってデータを準備
+            const form = document.getElementById('main-form');
             const formData = new FormData();
-            formData.append('id', userId);
-            formData.append('pass', password);
-            formData.append('data', valueToRecord); // 任意の値
-            formData.append('type', 'write'); // GAS側で処理を分けるための識別子
+            
+            // 必須項目チェック
+            const type = document.querySelector('input[name="type"]:checked')?.value;
+            const q2Value = document.getElementById('q2').value.trim();
 
+            if (!q2Value) {
+                resultDiv.textContent = '❌ 担当者名 (q2) は必須です。';
+                resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-red-900 text-red-300';
+                document.getElementById('q2').focus();
+                return;
+            }
+
+            formData.append('id', 'anonymous_user');
+            formData.append('pass', 'none');
+            
+            formData.append('type', 'write'); 
+            formData.append('category', type); 
+            formData.append('q2', q2Value);
+            
+            form.querySelectorAll('input, select, textarea').forEach(element => {
+                if (element.name && element.name !== 'type') {
+                    if (element.type === 'checkbox' || element.type === 'radio') {
+                        if (element.checked) {
+                            if (element.name === 'q3') {
+                                formData.append('q3', element.value);
+                            } else if (element.name === 'q5_items') {
+                                formData.append('q5', element.value);
+                            }
+                        }
+                    } else if (!element.disabled && element.type !== 'submit') {
+                        // disabled属性がない、かつsubmitボタンでない要素の値を追加
+                        formData.append(element.name, element.value);
+                    }
+                }
+            });
+
+            // 最終送信
             try {
+                // キャッシュを無効化し、新しいリクエストを強制する
                 const response = await fetch(GAS_API_URL, {
                     method: 'POST',
-                    body: formData // POSTでデータを送信 (Content-Type: multipart/form-data)
+                    body: formData,
+                    cache: 'no-store'
                 });
 
-                // HTTPステータスが200番台でなければエラーとして処理
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
+                
+                const responseText = await response.text();
+                let data;
 
-                // GASからのJSONレスポンスをパース
-                const data = await response.json(); 
+                if (responseText.trim().startsWith('<!DOCTYPE html>') || responseText.trim().startsWith('<html')) {
+                    console.error('GAS returned HTML (likely an error page):', responseText);
+                    throw new Error('GAS_RETURNED_HTML'); 
+                }
 
+                try {
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('JSON Parse failed on received text (GAS returned non-JSON text):', responseText);
+                    throw new Error('JSONパースエラー: 受信データがJSON形式ではありません。');
+                }
+                
                 if (data.status === 'success') {
-                    resultDiv.textContent = '✅ 成功: ' + data.message;
+                    resultDiv.textContent = '✅ 記録成功！データはスプレッドシートに送信されました。';
                     resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-green-900 text-green-300';
                 } else {
-                    resultDiv.textContent = '❌ 失敗: ' + data.message;
-                    resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-red-900 text-red-300';
+                    throw new Error(`GASエラー: ${data.message || '記録失敗。'}`);
                 }
+                
+                form.reset();
+                handleTypeChange('売上・注文'); 
+                
+                // フォームリセット後、全ての入力を非アクティブ状態に戻す
+                AppData.orders.forEach(order => toggleQtyInput(order.key, false));
+                AppData.expenseDefs.forEach(def => toggleExpenseInputs(def.key, false));
 
             } catch (error) {
                 console.error('Fetch Error:', error);
                 
-                // エラータイプに基づいてメッセージを更新
-                if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-                    resultDiv.textContent = errorMessages.CORS; // 既知のCORSエラーに統一
-                } else {
-                    resultDiv.textContent = errorMessages.FATAL;
-                }
+                const fetchMessage = error.message.includes('Failed to fetch') 
+                    ? `ネットワークエラーが発生しました。URL: ${GAS_API_URL}` 
+                    : error.message;
+
+                resultDiv.textContent = '❌ 記録失敗: ' + fetchMessage;
                 resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-red-900 text-red-300';
             }
         }
+        
+        /**
+         * 分析ページへのリダイレクト処理 
+         */
+        async function attemptRedirect() {
+            const GAS_API_URL = getGasApiUrl(); // URLを取得
+            const q7Input = document.getElementById('q7');
+            const q7Value = q7Input.value.trim();
+            const redirectResultDiv = document.getElementById('redirect-result');
+            redirectResultDiv.textContent = ''; 
+
+            if (!q7Value) {
+                redirectResultDiv.textContent = 'パスワードを入力してください。';
+                return;
+            }
+            
+            if (q7Value === AppData.setVal) {
+                redirectResultDiv.textContent = '✅ パスワード認証成功！分析ページに移動します...';
+                redirectResultDiv.className = 'text-green-400 text-sm';
+                
+                window.open(GAS_API_URL + "?page=redirect", '_blank');
+
+            } else {
+                redirectResultDiv.textContent = '❌ 入力内容が正しくありません。';
+                redirectResultDiv.className = 'text-red-400 text-sm';
+            }
+        }
+
     </script>
 </body>
 </html>
