@@ -16,15 +16,15 @@
             @apply text-lg font-semibold text-teal-400 border-b border-gray-600 pb-2 mb-3;
         }
         
-        /* 💡 入力フィールドのスタイル: 文字色をティール系の明るい色に変更 (text-white/gray-200を回避) */
+        /* 💡 入力フィールドのスタイル - !importantで文字色を強制 (teal-400) */
         .input-style {
             @apply w-full p-2 border border-gray-600 bg-gray-800 rounded-md 
-                   text-teal-200 placeholder-gray-500 
+                   placeholder-gray-500 
                    focus:ring-teal-500 focus:border-teal-500 
-                   transition duration-150 disabled:opacity-70; 
-        }
-        .radio-checked {
-            @apply ring-2 ring-teal-500 bg-teal-600;
+                   transition duration-150 disabled:opacity-70;
+            
+            /* text-teal-400 (#2dd4bf) のカラーコードを!importantで強制適用 */
+            color: #2dd4bf !important;
         }
         
     </style>
@@ -42,17 +42,14 @@
             
             <!-- 1. カテゴリ選択 (type) -->
             <div id="type-section" class="form-section space-y-3">
-                <!-- text-gray-300 -> text-gray-400 に修正 -->
                 <p class="text-sm font-medium text-gray-400">記録タイプを選択 (type):</p>
                 <div class="flex space-x-4">
-                    <!-- text-gray-300 -> text-gray-400 に修正 -->
                     <label class="flex items-center text-gray-400 cursor-pointer p-2 rounded-lg hover:bg-gray-600 transition">
                         <input type="radio" name="type" value="売上・注文" 
                                class="text-teal-500 focus:ring-teal-500 h-4 w-4 border-gray-300" 
                                onchange="handleTypeChange(this.value)" checked>
                         <span class="ml-2 text-sm font-medium">売上・注文</span>
                     </label>
-                    <!-- text-gray-300 -> text-gray-400 に修正 -->
                     <label class="flex items-center text-gray-400 cursor-pointer p-2 rounded-lg hover:bg-gray-600 transition">
                         <input type="radio" name="type" value="経費" 
                                class="text-teal-500 focus:ring-teal-500 h-4 w-4 border-gray-300" 
@@ -64,9 +61,8 @@
 
             <!-- 2. 担当者/キャスト名入力 (q2) -->
             <div id="q2-section" class="form-section space-y-1">
-                <!-- text-gray-300 -> text-gray-400 に修正 -->
                 <label for="q2" class="block text-sm font-medium text-gray-400">担当者名 (q2): <span class="text-red-400">*</span></label>
-                <!-- input-style を適用 (内部は text-teal-200) -->
+                <!-- input-style 適用 -->
                 <input type="text" id="q2" name="q2" class="input-style" placeholder="例: 太郎">
             </div>
 
@@ -82,12 +78,16 @@
             <div id="q5-section" class="form-section space-y-3 hidden">
                 <h3 class="section-header">経費項目 (q5)</h3>
                 <div id="expense-items-container" class="space-y-4">
-                    <p class="text-sm text-gray-400">経費定義をロード中...</p>
+                    <!-- 経費項目がここにレンダリングされます -->
                 </div>
                 
-                <!-- デバッグ情報表示エリア -->
-                <div id="expense-debug-info" class="p-2 bg-gray-900 border border-gray-700 rounded-md text-xs text-gray-400 mt-4">
-                    <!-- GASからロードされた経費データが表示されます -->
+                <!-- 経費詳細入力エリア -->
+                <div id="expense-details-container" class="form-section space-y-3 mt-4">
+                    <p class="text-sm font-medium text-gray-400 border-b border-gray-600 pb-1">詳細入力:</p>
+                    <div id="detail-inputs-area" class="space-y-2">
+                        <!-- 詳細入力フィールドがここに動的に挿入されます -->
+                        <p class="text-xs text-gray-500">項目を選択すると、必要な詳細入力が表示されます。</p>
+                    </div>
                 </div>
             </div>
             
@@ -100,11 +100,10 @@
 
         <!-- 6. 分析ページリダイレクトセクション (q7) -->
         <div class="form-section space-y-3 border-t border-gray-700 pt-4">
-            <!-- text-gray-300 -> text-gray-400 に修正 -->
             <h3 class="text-base font-bold text-gray-400">分析ページへ移動 (q7)</h3>
             <p class="text-xs text-gray-400">アクセスパスワードを入力してください。</p>
             <div class="flex space-x-3">
-                <!-- input-style を適用 (内部は text-teal-200) -->
+                <!-- input-style 適用 -->
                 <input type="password" id="q7" name="q7" class="input-style flex-grow" placeholder="パスワード">
                 <button onclick="attemptRedirect()"
                         class="py-2 px-4 bg-orange-600 hover:bg-orange-500 text-white text-sm font-medium rounded-md transition duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500">
@@ -115,14 +114,13 @@
         </div>
 
         <!-- 7. フォーム送信結果 -->
-        <!-- text-white -> text-teal-200 に修正 -->
-        <div id="result" class="mt-4 p-4 text-sm font-medium rounded-lg text-center min-h-10 transition duration-300 text-teal-200">
+        <div id="result" class="mt-4 p-4 text-sm font-medium rounded-lg text-center min-h-10 transition duration-300 text-teal-500">
             <!-- 結果が表示されます -->
         </div>
     </div>
 
     <script>
-        // 💡 ユーザーから提供された正しいURLに修正
+        // 💡 ユーザーから提供された正しいURL
         const CORRECT_GAS_API_URL = "https://script.google.com/macros/s/AKfycbwm1cN_jcDzR3YJLVnf6kCYCMGrHuKJ6-NYjV6rUR2GX_DBcaLFcICjebVdRN9f7Hu1_A/exec"; 
         
         /**
@@ -132,15 +130,12 @@
             return CORRECT_GAS_API_URL;
         }
 
-        // グローバルデータストア
+        // グローバルデータストア (フラット構造に戻す)
         let AppData = {
-            formDef: [],
-            orders: [], 
-            expenseDefs: [], 
-            depMap: {},
-            setVal: '' 
+            orders: [], // 売上項目: { key, price, qty }
+            expenseDefs: [], // 経費定義: { parent, child, cols: ['col2:時給 (text)', 'col3:時間 (number)', ...] }
+            setVal: '' // パスワード
         };
-        
         // ページロード時の初期処理
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('main-form').addEventListener('submit', (e) => {
@@ -156,132 +151,131 @@
          * GASから全てのフォーム定義データを統合的に取得する
          */
         async function loadAllData() {
-            const GAS_API_URL = getGasApiUrl(); // URLを取得
+            const GAS_API_URL = getGasApiUrl();
             const salesContainer = document.getElementById('sales-items-container');
-            const expenseContainer = document.getElementById('expense-items-container');
             const resultDiv = document.getElementById('result');
 
             salesContainer.innerHTML = '<p class="text-sm text-gray-400">注文データをロード中...</p>';
-            expenseContainer.innerHTML = '<p class="text-sm text-gray-400">経費定義をロード中...</p>';
             resultDiv.className = 'hidden';
 
-            let dataLoadedFromGAS = false;
-            const MAX_RETRIES = 3;
-            let lastError = null;
-
-            for (let i = 0; i < MAX_RETRIES; i++) {
-                let responseText = '';
+            try {
+                const response = await fetch(GAS_API_URL + "?action=loadData");
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const responseText = await response.text();
+                let data;
                 try {
-                    // キャッシュを無効化し、新しいリクエストを強制する
-                    const response = await fetch(GAS_API_URL + "?action=loadData", {
-                        method: 'GET', 
-                        cache: 'no-store' 
-                    });
+                    data = JSON.parse(responseText);
+                } catch (e) {
+                    console.error('JSON Parse failed:', responseText);
+                    throw new Error('GASから返されたデータがJSON形式ではありません。');
+                }
 
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    
-                    responseText = await response.text();
-                    let data;
+                if (data.status === 'success') {
+                    // 💡 デバッグ用: 受信した生データをコンソールに出力
+                    console.log("🔍 GASから受信した生データ (orders):", data.orders);
+                    console.log("🔍 GASから受信した生データ (expenseDefs):", data.expenseDefs);
 
-                    if (responseText.trim().startsWith('<!DOCTYPE html>') || responseText.trim().startsWith('<html')) {
-                        console.error('GAS returned HTML (likely an error page):', responseText);
-                        throw new Error('GAS_RETURNED_HTML');
-                    }
-
-                    try {
-                        data = JSON.parse(responseText);
-                    } catch (e) {
-                        const preview = responseText.substring(0, 200) + (responseText.length > 200 ? '...' : ''); 
-                        console.error('JSON Parse failed on received text (GAS returned non-JSON text). Full response:', responseText);
-                        throw new Error(`JSONパースエラー: 受信データがJSON形式ではありません。レスポンスの先頭: "${preview}"`);
-                    }
-                    
-                    if (data.status === 'error') {
-                        throw new Error(`GASエラー: ${data.message || 'データ取得に失敗しました。'}`);
-                    }
-                    
                     // 成功した場合、AppDataをGASデータで上書き
-                    AppData.orders = data.orders || [];
-                    AppData.expenseDefs = data.expenseDefs || [];
+                    AppData.orders = (data.orders || []).filter(item => item && item.key);
                     AppData.setVal = data.setVal || '';
-                    dataLoadedFromGAS = true;
                     
-                    console.log("✅ GASからデータを正常にロードしました。");
-                    break; 
-                    
-                } catch (error) {
-                    lastError = error;
-                    if (i < MAX_RETRIES - 1) {
-                        const delay = Math.pow(2, i) * 100; // リトライを早くする
-                        console.log(`[API Retry] Attempt ${i + 1} failed. Retrying in ${delay / 1000}s...`);
-                        await new Promise(resolve => setTimeout(resolve, delay));
+                    // 💡 【修正済み】GASから受信したフラットな経費データ構造をクライアントのAppData.expenseDefs形式に変換する
+                    let flattenedDefs = [];
+                    if (data.expenseDefs && Array.isArray(data.expenseDefs)) {
+                        data.expenseDefs.forEach(def => { // def は {parentKey, childKey, details} のオブジェクト
+                            const parentKey = def.parentKey || '';
+                            const childKey = def.childKey || '';
+                            
+                            if (parentKey && childKey) {
+                                // details は {header, type, name} の配列
+                                const validDetails = (def.details || []).filter(detail => {
+                                    // nameが存在し、空文字列でなければ有効とみなす
+                                    const name = String(detail.name || '').trim();
+                                    return detail && (name !== '' && name !== '-'); 
+                                });
+
+                                // cols配列を構築する (例: "col2:時給 (text)")
+                                const cols = validDetails.map(detail => {
+                                    const colName = String(detail.name).trim(); // col2, col3, col4のキー名が入る
+                                    if (colName === '' || colName === '-') {
+                                        return null; 
+                                    }
+                                    
+                                    // headerが空の場合は colName を使用
+                                    const header = (detail.header && String(detail.header).trim() !== '') ? detail.header : colName; 
+                                    // typeが空の場合は 'text' をデフォルトとする
+                                    const typeLower = (detail.type || '').toLowerCase();
+                                    const typeSuffix = typeLower === 'number' ? '(number)' : '(text)';
+
+                                    // colName:header typeSuffix の形式で結合 (例: col2:時給 (text))
+                                    return `${colName}:${header} ${typeSuffix}`;
+                                }).filter(col => col !== null);
+
+                                // 有効な詳細定義が存在するかどうかに関わらず、項目自体は追加
+                                flattenedDefs.push({
+                                    parent: parentKey,
+                                    child: childKey,
+                                    cols: cols
+                                });
+                            }
+                        });
                     }
-                }
-            }
+
+                    // 変換後のフラットな経費定義をセット
+                    AppData.expenseDefs = flattenedDefs;
+                    console.log("✅ GASからデータを正常にロードしました。");
+                    console.log("💡 変換後のフラットな経費データ (AppData.expenseDefs):", AppData.expenseDefs);
 
 
-            // データロードが失敗した場合、コンソールにエラーを表示し、ダミーデータで続行
-            if (!dataLoadedFromGAS) {
-                console.warn('⚠️ GASからのデータロードに失敗しました。ダミーデータを使用してフォームを初期化します。');
-                
-                // lastErrorの詳細をコンソールに出力し、画面表示メッセージを調整
-                console.error('[CONSOLE_ERROR] 最終的なデータロードエラー:', lastError);
+                    // 💡 経費データが空だった場合、ユーザーにフィードバック
+                    if (AppData.expenseDefs.length === 0 && AppData.orders.length > 0) {
+                        // ordersのデータが取得できていれば、GASとの接続自体は成功しているため、定義の問題だと断定できる
+                        resultDiv.textContent = '⚠️ 経費項目が一つも定義されていません。スプレッドシートの「経費定義」シートをご確認ください。';
+                        resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-yellow-900 text-yellow-300';
+                    } else if (AppData.expenseDefs.length === 0 && AppData.orders.length === 0) {
+                        // 全てのデータが取れていない場合（接続エラーの可能性も含むが、今回はGASに接続できている前提）
+                         resultDiv.textContent = '⚠️ データが一つも定義されていません。「経費定義」と「売上・注文定義」シートをご確認ください。';
+                        resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-yellow-900 text-yellow-300';
+                    } else {
+                        resultDiv.className = 'hidden'; 
+                    }
 
-                let errorMessage = '';
-                if (lastError && lastError.message) {
-                    // エラーメッセージからネットワーク関連のエラーを検出
-                    const networkError = lastError.message.includes('Failed to fetch') || lastError.message.includes('Type error');
-                    errorMessage = networkError 
-                        ? `ネットワーク接続エラー（URL/CORSの問題）。`
-                        : lastError.message;
                 } else {
-                    errorMessage = '接続またはネットワーク関連のエラーが発生しました。コンソールで詳細を確認してください。';
+                    throw new Error(`GASエラー: ${data.message || 'データ取得に失敗しました。'}`);
                 }
-
-                // エラーメッセージをlastErrorから取得し、画面に表示
-                let displayMessage = `⚠️ データロード失敗 (${MAX_RETRIES}回再試行後): ${errorMessage}
-                                      使用URL: ${GAS_API_URL}
-                                      GASのURLが正しいか、デプロイ版の**公開設定（「全員」）**を確認してください。ダミーデータで実行中。`;
+            } catch (error) {
+                console.error('⚠️ GASからのデータロードに失敗しました。ダミーデータを使用します:', error);
                 
-                resultDiv.textContent = displayMessage;
-                resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-red-900 text-red-300';
-
-                // --- ここでダミーデータを強制的に設定する ---
+                // --- ダミーデータを強制的に設定する ---
                 AppData.orders = [
                     { key: 'ビール (大)', price: 800, qty: 1 },
                     { key: 'ボトル (赤)', price: 5000, qty: 1 },
                     { key: 'ショット', price: 1000, qty: 3 },
                     { key: 'フード', price: 1500, qty: 1 }
                 ];
+                
+                // 以前のフラットな経費構成に戻す
                 AppData.expenseDefs = [
-                    {
-                        key: '雑費',
-                        col2: { header: '詳細', type: 'text', initialValue: '備品購入' },
-                        col3: { header: '金額', type: 'number', initialValue: 500 }
-                    },
-                    {
-                        key: '交通費',
-                        col2: { header: '行先', type: 'text', initialValue: '自宅' },
-                        col3: { header: '金額', type: 'number', initialValue: 1200 }
-                    },
-                    {
-                        key: 'その他',
-                        col2: { header: '詳細', type: 'text', initialValue: '' },
-                        col3: { header: '金額', type: 'number', initialValue: 0 }
-                    }
+                    { parent: '会議費', child: '飲食代', cols: ['col2:会議目的 (text)', 'col3:参加人数 (number)', 'col4:合計金額 (number)'] },
+                    { parent: '会議費', child: '会場費', cols: ['col2:会場名 (text)', 'col3:利用時間 (number)', 'col4:合計金額 (number)'] },
+                    { parent: '消耗品費', child: '備品購入', cols: ['col2:品目 (text)', 'col3:金額 (number)'] },
+                    { parent: '消耗品費', child: '店舗用品', cols: ['col2:詳細 (text)', 'col3:数量 (number)', 'col4:単価 (number)'] },
+                    { parent: '交通費', child: 'タクシー', cols: ['col2:行先 (text)', 'col3:金額 (number)'] },
+                    { parent: '交通費', child: '電車・バス', cols: ['col2:区間 (text)', 'col3:金額 (number)'] }
                 ];
                 AppData.setVal = 'cabatech_pass';
                 // ------------------------------------------
 
-            } else {
-                 resultDiv.className = 'hidden'; // 成功時は非表示
+                resultDiv.textContent = `⚠️ データロード失敗: ${error.message}。ダミーデータで実行中。`;
+                resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-red-900 text-red-300';
             }
 
             // フォームのレンダリング
             renderSalesItems();
-            renderExpenseItems();
+            renderExpenseItems(); // フラット構造のレンダリング
             handleTypeChange('売上・注文'); // 初期カテゴリの表示
         }
 
@@ -291,15 +285,14 @@
         function renderSalesItems() {
             const container = document.getElementById('sales-items-container');
             if (AppData.orders.length === 0) {
-                container.innerHTML = '<p class="text-sm text-yellow-400">注文項目が定義されていません。</p>';
+                container.innerHTML = '<p class="text-sm text-yellow-400">注文項目が定義されていません。スプレッドシートの「売上・注文定義」シートにご記入ください。</p>';
                 return;
             }
 
             const itemsHtml = AppData.orders.map(order => `
                 <div class="flex items-center space-x-3 p-2 bg-gray-600 rounded-md">
                     <!-- チェックボックス (q3) -->
-                    <!-- text-gray-200 -> text-teal-200 に修正 -->
-                    <label class="flex items-center flex-grow text-sm text-teal-200 cursor-pointer">
+                    <label class="flex items-center flex-grow text-sm text-gray-300 cursor-pointer">
                         <input type="checkbox" name="q3" value="${order.key}" 
                                class="text-teal-500 focus:ring-teal-500 h-4 w-4 border-gray-400 rounded"
                                onchange="toggleQtyInput('${order.key}', this.checked)">
@@ -307,14 +300,14 @@
                     </label>
                     
                     <!-- 数量入力 (q3_qty_...) -->
-                    <!-- 内部フォントは text-teal-200 -->
+                    <!-- input-style を適用 -->
                     <input type="number" 
                            id="q3_qty_${order.key}" 
                            name="q3_qty_${order.key}" 
                            value="${order.qty}" 
                            min="0" 
                            placeholder="数量" 
-                           class="w-20 p-1 text-sm text-center border border-gray-500 bg-gray-700 rounded-md text-teal-200 disabled:opacity-70">
+                           class="input-style w-20 p-1 text-sm text-center border border-gray-500 bg-gray-700 rounded-md disabled:opacity-70">
                 </div>
             `).join('');
 
@@ -335,127 +328,125 @@
             const qtyInput = document.getElementById(`q3_qty_${key}`);
             if (qtyInput) {
                 qtyInput.disabled = !isChecked;
-                // チェックされたら数量を初期値に戻すか、1にする
                 if (isChecked) {
                    qtyInput.value = AppData.orders.find(o => o.key === key)?.qty || 1;
                 } else {
-                   qtyInput.value = 0; // チェック解除時は0にリセット
+                   qtyInput.value = 0;
                 }
             }
         }
 
 
         /**
-         * 経費アイテム (q5) を動的にレンダリングする
+         * 経費アイテム (q5) を動的にレンダリングする (フラット構造に戻す)
          */
         function renderExpenseItems() {
             const container = document.getElementById('expense-items-container');
-            const debugInfo = document.getElementById('expense-debug-info'); 
-
+            
             if (AppData.expenseDefs.length === 0) {
                 container.innerHTML = '<p class="text-sm text-yellow-400">経費項目が定義されていません。</p>';
-                debugInfo.innerHTML = '<p>デバッグ情報: 経費定義データは空です。GASのシート名やSPREADSHEET_IDを確認してください。</p>';
                 return;
             }
 
-            // デバッグ情報に出力
-            debugInfo.innerHTML = `
-                <p class="font-bold text-teal-400 mb-1">--- 経費データ定義 (GASからの受信データ) ---</p>
-                ${AppData.expenseDefs.map(def => 
-                    `<p><strong>${def.key}</strong>: 
-                     [col2: H:${def.col2?.header || 'N/A'}/T:${def.col2?.type || 'N/A'}/V:${def.col2?.initialValue || 'N/A'}] 
-                     [col3: H:${def.col3?.header || 'N/A'}/T:${def.col3?.type || 'N/A'}/V:${def.col3?.initialValue || 'N/A'}]</p>`
-                ).join('')}
-                <p class="mt-1">※ T: type (入力タイプ), H: header, V: initialValue</p>
-            `;
+            // parentKeyがundefinedになるのを防ぐため、空文字列に変換してからユニークなキーを取得
+            const parentKeys = [...new Set(AppData.expenseDefs.map(def => def.parent || ''))].filter(k => k);
 
+            const itemsHtml = parentKeys.map(parentKey => {
+                const childDefs = AppData.expenseDefs.filter(def => def.parent === parentKey);
 
-            const itemsHtml = AppData.expenseDefs.map(def => {
-                const type2 = typeof def.col2?.type === 'string' ? def.col2.type.toLowerCase() : '';
-                const type3 = typeof def.col3?.type === 'string' ? def.col3.type.toLowerCase() : '';
-
-                const col2InputType = (type2 === 'number' || type2 === 'n') ? 'number' : 'text';
-                const col3InputType = (type3 === 'number' || type3 === 'n') ? 'number' : 'text';
-
-                return `
-                    <div class="space-y-2 p-3 border border-gray-600 rounded-lg">
-                        <!-- text-gray-200 -> text-teal-200 に修正 -->
-                        <label class="flex items-center text-sm font-medium text-teal-200 cursor-pointer">
-                            <input type="checkbox" name="q5_items" value="${def.key}" 
-                                   class="text-teal-500 focus:ring-teal-500 h-4 w-4 border-gray-400 rounded"
-                                   onchange="toggleExpenseInputs('${def.key}', this.checked)">
-                            <span class="ml-2">${def.key}</span>
-                        </label>
-                        
-                        <div id="expense_details_${def.key}" class="flex space-x-3 mt-1 transition duration-200">
-                            <!-- col2 (価格/詳細) -->
-                            <div class="flex-1">
-                                <label for="expense_${def.key}_col2" class="block text-xs text-gray-400 mb-1">${def.col2.header}</label>
-                                <!-- input-style クラスを使用 (内部は text-teal-200) -->
-                                <input type="${col2InputType}" 
-                                       id="expense_${def.key}_col2" 
-                                       name="expense_${def.key}_col2" 
-                                       placeholder="${def.col2.header}"
-                                       value="${def.col2.initialValue}" 
-                                       class="input-style p-1 text-sm">
-                            </div>
-
-                            <!-- col3 (個数/金額) -->
-                            <div class="flex-1">
-                                <label for="expense_${def.key}_col3" class="block text-xs text-gray-400 mb-1">${def.col3.header}</label>
-                                <!-- input-style クラスを使用 (内部は text-teal-200) -->
-                                <input type="${col3InputType}" 
-                                       id="expense_${def.key}_col3" 
-                                       name="expense_${def.key}_col3" 
-                                       placeholder="${def.col3.header}"
-                                       value="${def.col3.initialValue}" 
-                                       class="input-style p-1 text-sm">
-                            </div>
+                // 親カテゴリごとのグループ
+                const parentGroup = `
+                    <div class="space-y-2 p-3 border border-gray-600 rounded-lg bg-gray-700">
+                        <p class="text-base font-bold text-teal-400">${parentKey}</p>
+                        <div class="space-y-1 pl-4 border-l-2 border-teal-700">
+                            ${childDefs.map(def => {
+                                // 子カテゴリごとのラジオボタン
+                                const safeChildKey = String(def.child || '');
+                                const safeParentKey = String(parentKey); 
+                                
+                                // ID生成時にreplaceを安全に実行
+                                const radioId = `q5_${safeParentKey.replace(/\s/g, '_')}_${safeChildKey.replace(/\s/g, '_')}`;
+                                
+                                return `
+                                    <label class="flex items-center text-sm font-medium text-gray-300 cursor-pointer">
+                                        <input type="radio" 
+                                               name="q5_selection" 
+                                               id="${radioId}"
+                                               value="${parentKey}|${def.child}" 
+                                               class="text-orange-500 focus:ring-orange-500 h-4 w-4 border-gray-400"
+                                               onchange="handleExpenseSelection('${parentKey}', '${def.child}')">
+                                        <span class="ml-2">${def.child}</span>
+                                    </label>
+                                `;
+                            }).join('')}
                         </div>
+                    </div>
+                `;
+                return parentGroup;
+            }).join('');
+
+            container.innerHTML = `
+                <p class="text-xs text-gray-400 mb-2">記録したい経費の項目を選択してください。</p>
+                <input type="hidden" name="q5_selection" value=""> 
+                ${itemsHtml}
+            `;
+            
+            // 初期表示で詳細入力をクリア
+            document.getElementById('detail-inputs-area').innerHTML = '<p class="text-xs text-gray-500">項目を選択すると、必要な詳細入力が表示されます。</p>';
+        }
+        
+        /**
+         * 経費選択時の詳細入力レンダリング処理 (フラット構造に戻す)
+         */
+        function handleExpenseSelection(parentKey, childKey) {
+            const detailArea = document.getElementById('detail-inputs-area');
+            detailArea.innerHTML = '';
+            
+            // 選択された項目定義を見つける
+            const selectedDef = AppData.expenseDefs.find(def => def.parent === parentKey && def.child === childKey);
+            
+            if (!selectedDef || !selectedDef.cols || selectedDef.cols.length === 0) {
+                // colsが空の場合は、詳細入力は不要だが、エラーとはしない
+                detailArea.innerHTML = '<p class="text-xs text-gray-500">この項目には追加の詳細入力は必要ありません。</p>';
+                return;
+            }
+
+            // cols配列をループして入力フィールドを生成
+            const inputsHtml = selectedDef.cols.map(colDef => {
+                // colDefの形式: "col2:会議目的 (text)"
+                const parts = colDef.split(':');
+                if (parts.length < 2) {
+                    console.warn('Skipping invalid column definition:', colDef);
+                    return ''; // 無効な定義はスキップ
+                }
+                
+                const [keyType, ...rest] = parts;
+                const colKey = keyType.trim().split(' ')[0]; 
+                const header = rest.join(':').trim(); // ヘッダー部分
+                
+                // typeが(number)の場合はnumber
+                const inputType = header.includes('(number)') ? 'number' : 'text';
+                // ヘッダー名から (text) や (number) を除去
+                const cleanHeader = header.replace(/\s\(text\)|\s\(number\)/, '');
+                
+                // colKeyは 'col2', 'col3', 'col4' のいずれか
+                return `
+                    <div>
+                        <label for="${colKey}" class="block text-sm font-medium text-gray-400">${cleanHeader}:</label>
+                        <!-- input-style を適用し、!importantで色を保証 -->
+                        <input type="${inputType}" 
+                               id="${colKey}" 
+                               name="${colKey}" 
+                               class="input-style" 
+                               placeholder="${cleanHeader}">
                     </div>
                 `;
             }).join('');
 
-            container.innerHTML = `
-                <p class="text-xs text-gray-400 mb-2">チェックした経費項目を記録します。</p>
-                <input type="hidden" name="q5_items" value=""> <!-- 選択がない場合に備えたダミー -->
-                ${itemsHtml}
-            `;
-            
-            // 初期の状態を設定 
-            AppData.expenseDefs.forEach(def => toggleExpenseInputs(def.key, false));
+            detailArea.innerHTML = inputsHtml;
         }
 
-        /**
-         * q5のチェックボックスに応じて経費詳細入力の有効/無効を切り替える
-         */
-        function toggleExpenseInputs(key, isChecked) {
-            const detailsDiv = document.getElementById(`expense_details_${key}`);
-            if (!detailsDiv) return;
 
-            // detailsDiv全体を非操作状態にする（クリックイベントを遮断）
-            if (isChecked) {
-                detailsDiv.classList.remove('pointer-events-none');
-            } else {
-                detailsDiv.classList.add('pointer-events-none');
-            }
-            
-            // 子要素の入力欄を取得
-            const col2 = document.getElementById(`expense_${key}_col2`);
-            const col3 = document.getElementById(`expense_${key}_col3`);
-
-            if (col2) {
-                col2.disabled = !isChecked; // disabled属性を切り替える
-                // チェックOFF時は値をリセット
-                if (!isChecked) col2.value = AppData.expenseDefs.find(d => d.key === key)?.col2.initialValue || '';
-            }
-            if (col3) {
-                col3.disabled = !isChecked; // disabled属性を切り替える
-                // チェックOFF時は値をリセット
-                if (!isChecked) col3.value = AppData.expenseDefs.find(d => d.key === key)?.col3.initialValue || '';
-            }
-        }
-        
         /**
          * タイプ (売上・経費) の選択に応じてフォームを切り替える
          */
@@ -469,6 +460,10 @@
             } else if (type === '経費') {
                 q3Section.classList.add('hidden');
                 q5Section.classList.remove('hidden');
+                
+                // 経費フォームに切り替えた際、ラジオボタンのチェックと詳細入力をリセット
+                document.getElementsByName('q5_selection').forEach(radio => radio.checked = false);
+                document.getElementById('detail-inputs-area').innerHTML = '<p class="text-xs text-gray-500">項目を選択すると、必要な詳細入力が表示されます。</p>';
             }
         }
 
@@ -477,10 +472,9 @@
          * メインフォームのデータ送信処理 (GASのsubmitFormを叩く)
          */
         async function submitFormData() {
-            const GAS_API_URL = getGasApiUrl(); // URLを取得
+            const GAS_API_URL = getGasApiUrl();
             const resultDiv = document.getElementById('result');
-            // text-white -> text-teal-200 に修正
-            resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-gray-700 text-teal-200';
+            resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-gray-700 text-teal-500';
             resultDiv.textContent = '送信中...';
 
             const form = document.getElementById('main-form');
@@ -489,6 +483,7 @@
             // 必須項目チェック
             const type = document.querySelector('input[name="type"]:checked')?.value;
             const q2Value = document.getElementById('q2').value.trim();
+            const q5Selection = document.querySelector('input[name="q5_selection"]:checked')?.value;
 
             if (!q2Value) {
                 resultDiv.textContent = '❌ 担当者名 (q2) は必須です。';
@@ -496,7 +491,13 @@
                 document.getElementById('q2').focus();
                 return;
             }
-
+            
+            if (type === '経費' && !q5Selection) {
+                resultDiv.textContent = '❌ 経費を記録するには項目を選択してください。';
+                resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-red-900 text-red-300';
+                return;
+            }
+            
             formData.append('id', 'anonymous_user');
             formData.append('pass', 'none');
             
@@ -504,30 +505,69 @@
             formData.append('category', type); 
             formData.append('q2', q2Value);
             
-            form.querySelectorAll('input, select, textarea').forEach(element => {
-                if (element.name && element.name !== 'type') {
-                    if (element.type === 'checkbox' || element.type === 'radio') {
-                        if (element.checked) {
-                            if (element.name === 'q3') {
-                                formData.append('q3', element.value);
-                            } else if (element.name === 'q5_items') {
-                                formData.append('q5', element.value);
+            // 売上項目の収集
+            if (type === '売上・注文') {
+                let hasSalesItem = false;
+                form.querySelectorAll('input[name="q3"]:checked').forEach(checkbox => {
+                    const key = checkbox.value;
+                    const qtyInput = document.getElementById(`q3_qty_${key}`);
+                    if (qtyInput && !qtyInput.disabled && parseInt(qtyInput.value) > 0) {
+                         // GAS側でまとめて処理できるよう、売上項目のキーと数量を配列として渡す
+                        formData.append('q3_item', key); 
+                        formData.append('q3_qty', qtyInput.value); 
+                        hasSalesItem = true;
+                    }
+                });
+                
+                // 売上・注文選択時に何もチェックされていない、または数量が0の場合のエラーチェック
+                if (!hasSalesItem && AppData.orders.length > 0) { // ordersがある場合のみチェック
+                    resultDiv.textContent = '❌ 売上・注文項目を1つ以上、数量1以上でチェックしてください。';
+                    resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-red-900 text-red-300';
+                    return;
+                } else if (AppData.orders.length === 0) {
+                    resultDiv.textContent = '❌ 売上項目が定義されていないため、このフォームでは経費しか記録できません。';
+                    resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-red-900 text-red-300';
+                    return;
+                }
+            }
+
+            // 経費項目の収集 (フラット構造)
+            if (type === '経費' && q5Selection) {
+                const [parentKey, childKey] = q5Selection.split('|');
+                
+                formData.append('q5_parent_key', parentKey); // 親カテゴリ (GASの項目名)
+                formData.append('q5_child_key', childKey); // 子カテゴリ (GASの区分)
+                
+                // 詳細入力 (col2, col3, col4) の値を収集
+                const detailInputContainer = document.getElementById('detail-inputs-area');
+                if (detailInputContainer) {
+                    let hasMissingNumberInput = false;
+                    detailInputContainer.querySelectorAll('input').forEach(input => {
+                        if (input.name) {
+                            
+                            // 数値入力が空の場合のバリデーション
+                            if (input.type === 'number' && input.value.trim() === '') {
+                                hasMissingNumberInput = true;
                             }
+                            
+                             // input.name は 'col2', 'col3', 'col4' のいずれか
+                            formData.append(input.name, input.value);
                         }
-                    } else if (!element.disabled && element.type !== 'submit') {
-                        // disabled属性がない、かつsubmitボタンでない要素の値を追加
-                        formData.append(element.name, element.value);
+                    });
+                    
+                    if (hasMissingNumberInput) {
+                        resultDiv.textContent = '❌ 金額や数量などの数値項目は空にできません。0を入力してください。';
+                        resultDiv.className = 'mt-4 p-4 text-sm font-medium rounded-lg text-center bg-red-900 text-red-300';
+                        return;
                     }
                 }
-            });
-
+            }
+            
             // 最終送信
             try {
-                // キャッシュを無効化し、新しいリクエストを強制する
                 const response = await fetch(GAS_API_URL, {
                     method: 'POST',
-                    body: formData,
-                    cache: 'no-store'
+                    body: formData
                 });
 
                 if (!response.ok) {
@@ -537,15 +577,10 @@
                 const responseText = await response.text();
                 let data;
 
-                if (responseText.trim().startsWith('<!DOCTYPE html>') || responseText.trim().startsWith('<html')) {
-                    console.error('GAS returned HTML (likely an error page):', responseText);
-                    throw new Error('GAS_RETURNED_HTML'); 
-                }
-
                 try {
                     data = JSON.parse(responseText);
                 } catch (e) {
-                    console.error('JSON Parse failed on received text (GAS returned non-JSON text):', responseText);
+                    console.error('JSON Parse failed:', responseText);
                     throw new Error('JSONパースエラー: 受信データがJSON形式ではありません。');
                 }
                 
@@ -556,12 +591,13 @@
                     throw new Error(`GASエラー: ${data.message || '記録失敗。'}`);
                 }
                 
+                // フォームリセット
                 form.reset();
                 handleTypeChange('売上・注文'); 
                 
                 // フォームリセット後、全ての入力を非アクティブ状態に戻す
                 AppData.orders.forEach(order => toggleQtyInput(order.key, false));
-                AppData.expenseDefs.forEach(def => toggleExpenseInputs(def.key, false));
+                document.getElementById('detail-inputs-area').innerHTML = '<p class="text-xs text-gray-500">項目を選択すると、必要な詳細入力が表示されます。</p>';
 
             } catch (error) {
                 console.error('Fetch Error:', error);
@@ -579,7 +615,7 @@
          * 分析ページへのリダイレクト処理 
          */
         async function attemptRedirect() {
-            const GAS_API_URL = getGasApiUrl(); // URLを取得
+            const GAS_API_URL = getGasApiUrl();
             const q7Input = document.getElementById('q7');
             const q7Value = q7Input.value.trim();
             const redirectResultDiv = document.getElementById('redirect-result');
